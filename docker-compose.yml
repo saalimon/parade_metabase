@@ -1,0 +1,54 @@
+version: '3.0'
+
+services:
+  jupyter_notebook_parade:
+    image: jupyter/minimal-notebook:python-3.8.8
+    container_name: jupyter_notebook_parade
+    user: root
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+      CHOWN_HOME: "yes"
+      CHOWN_HOME_OPTS: "-R"
+    ports:
+      - 8888:8888
+    volumes:
+      - ./:/home/jovyan/work
+      - ./configure_environment.sh:/usr/local/bin/before-notebook.d/configure_environment.sh
+    depends_on:
+      - paradedb
+    links:
+      - paradedb
+    networks:
+      - etl_network
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    ports:
+      - 3000:3000
+    volumes:
+      - ./metabase-data:/metabase-data
+    depends_on:
+      - paradedb
+    links:
+      - paradedb
+    networks:
+      - etl_network
+  paradedb:
+    image: paradedb/paradedb:latest
+    container_name: paradedb
+    restart: always
+    environment:
+      POSTGRESQL_DATABASE: ${POSTGRES_DB}
+      POSTGRESQL_USERNAME: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRESQL_ROOT_PASSWORD: ${POSTGRES_ROOT_PASSWORD}
+    ports:
+      - ${POSTGRES_PORT}:5432
+    volumes:
+      - db_volume:/var/lib/postgresql/data
+      
+volumes:
+  db_volume:
+    driver: local
+networks:
+  etl_network: null
